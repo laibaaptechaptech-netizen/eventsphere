@@ -1,0 +1,13 @@
+{
+  "name": "eventsphere/eventsphere-3d",
+  "description": "EventSphere 3D - Next-Gen Interactive Campus Event Platform",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.1",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
+    "ext-json": "*",
+    "ext-session": "*"
+  }
+}
