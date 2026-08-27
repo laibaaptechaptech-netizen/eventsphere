@@ -1,18 +1,14 @@
-# ────────────────────────────────────────────────
-# EventSphere – PHP 8.2 + Apache on Railway
-# ────────────────────────────────────────────────
 FROM php:8.2-apache
 
-# Install system dependencies + PHP extensions
+# Install dependencies and required PHP extensions
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
     libzip-dev \
     unzip \
-    curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
+    && docker-php-ext-install -j$(nproc) \
         pdo \
         pdo_mysql \
         mysqli \
@@ -22,14 +18,24 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache mod_rewrite (needed for clean URLs)
-RUN a2enmod rewrite
+# Enable required Apache modules and ensure single MPM
+RUN a2dismod mpm_event mpm_worker 2>/dev/null || true \
+    && a2enmod mpm_prefork rewrite headers expires
 
-# Update Apache config to allow .htaccess overrides
-RUN echo '<Directory /var/www/html>\n    AllowOverride All\n    Require all granted\n</Directory>' \
-    >> /etc/apache2/apache2.conf
+# Configure Apache DocumentRoot and AllowOverride
+RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
-# Copy application source
+# Configure PHP settings
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && echo "upload_max_filesize = 32M" >> "$PHP_INI_DIR/php.ini" \
+    && echo "post_max_size = 32M" >> "$PHP_INI_DIR/php.ini" \
+    && echo "memory_limit = 256M" >> "$PHP_INI_DIR/php.ini" \
+    && echo "max_execution_time = 120" >> "$PHP_INI_DIR/php.ini"
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy project files
 COPY . /var/www/html/
 
 # Create uploads directory and set permissions
@@ -38,18 +44,11 @@ RUN mkdir -p /var/www/html/uploads \
     && chmod -R 755 /var/www/html \
     && chmod -R 775 /var/www/html/uploads
 
-# PHP production settings
-RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
-    && echo "upload_max_filesize = 20M" >> "$PHP_INI_DIR/php.ini" \
-    && echo "post_max_size = 25M"       >> "$PHP_INI_DIR/php.ini" \
-    && echo "memory_limit = 256M"       >> "$PHP_INI_DIR/php.ini" \
-    && echo "max_execution_time = 60"   >> "$PHP_INI_DIR/php.ini"
-
-# Copy entrypoint that handles Railway's dynamic PORT
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Copy and setup entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 80
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"]

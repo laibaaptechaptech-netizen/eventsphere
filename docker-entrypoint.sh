@@ -1,15 +1,17 @@
 #!/bin/bash
-# docker-entrypoint.sh
-# Railway assigns a dynamic PORT via env var.
-# Apache must be reconfigured to listen on that port before starting.
-
 set -e
 
-PORT=${PORT:-80}
+PORT="${PORT:-80}"
 
-# Patch Apache to listen on the Railway-assigned port
-sed -i "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf
-sed -i "s/:80>/:${PORT}>/"           /etc/apache2/sites-available/000-default.conf
+# Configure Apache to listen on dynamic Railway PORT
+sed -i "s/Listen [0-9]*/Listen ${PORT}/" /etc/apache2/ports.conf
+sed -i "s/<VirtualHost \*:[0-9]*>/<VirtualHost \*:${PORT}>/" /etc/apache2/sites-available/000-default.conf
 
-echo "[entrypoint] Apache will listen on port ${PORT}"
+# Auto initialize database if script exists
+if [ -f "/var/www/html/init_db.php" ]; then
+    echo "[entrypoint] Running database auto-init check..."
+    php /var/www/html/init_db.php || true
+fi
+
+echo "[entrypoint] Starting Apache on port ${PORT}..."
 exec "$@"
