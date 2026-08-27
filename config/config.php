@@ -5,6 +5,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// System Timezone
+$timezone = getenv('SYSTEM_TIMEZONE') ?: ($_ENV['SYSTEM_TIMEZONE'] ?? 'Asia/Karachi');
+date_default_timezone_set($timezone);
+
 require_once __DIR__ . '/database.php';
 
 // Application Base URL detection

@@ -303,7 +303,7 @@ INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`) VALUES
 (1, 'site_name', 'EventSphere 3D'),
 (2, 'site_tagline', 'The Ultimate Next-Gen Campus Event Experience'),
 (3, 'default_hashtags', '#EventSphere #CampusLife #InnovateCreate #TechFest2026 #Symphonia2026'),
-(4, 'system_timezone', 'Asia/Kolkata'),
+(4, 'system_timezone', 'Asia/Karachi'),
 (5, '2fa_enabled', '1'),
 (6, 'maintenance_mode', '0'),
 (7, 'contact_email', 'support@eventsphere.edu'),
